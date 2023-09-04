@@ -1,6 +1,6 @@
 ```{r}
 library(rio)
-data1 <- import("https://raw.githubusercontent.com/Prratama/Aldy/main/Data/mpdw1.csv")
+data1 <- import("https://raw.githubusercontent.com/Prratama/MPDW/main/Data/mpdw1.csv")
 ```
 
 ```{r}
