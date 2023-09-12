@@ -1,0 +1,260 @@
+---
+title: "Tugas MPDW Pertemuan 2"
+output:
+---
+
+### Membangkitkan library yang dibutuhkan
+```{r}
+library("forecast")
+library("graphics")
+library("TTR")
+library("TSA")
+library("lmtest")
+library("orcutt")
+library("HoRM")
+library("GGally")
+library("ggplot2")
+library("SciViews")
+```
+
+### Impor Data
+```{r}
+library(readxl)
+tugas <- read_excel("C:/Users/ASUS/OneDrive/Documents/mpdw2.xlsx", sheet=4)
+str(tugas)
+dim(tugas)
+```
+
+### Mendefinisikan setiap peubah yang akan digunakan
+```{r}
+tinggi <- c(tugas$high)
+rendah <- c(tugas$low)
+total <- c(tugas$volume)
+gabung <- cbind(tinggi,rendah,total)
+gabung <- as.data.frame(gabung)
+gabung
+```
+
+### Membuat data time series
+```{r}
+datats1 <- ts(gabung$tinggi)
+datats2 <- ts(gabung$rendah)
+datats3 <- ts(gabung$total)
+datats1
+datats2
+datats3
+```
+
+### Membangkitkan plot dan korelasi
+```{r}
+ts.plot(datats1, xlab="Periode", ylab="Highest", main="Time Series Highest")
+ts.plot(datats2, xlab="Periode", ylab="Lowest", main="Time Series Lowest")
+ts.plot(datats3, xlab="Periode", ylab="Volume", main="Time Series Volume")
+plot(total,tinggi, xlab="Highest", ylab="Volume", main="Plot Highest & Volume")
+plot(total, rendah, xlab="Lowest", ylab="Volume", main=" Plot Lowest & Volume")
+
+ggpairs(tugas)
+```
+
+### Model regresi
+```{r}
+reg <- lm(total~tinggi+rendah, data = tugas)
+summary(reg)
+```
+Model yang dihasilkan adalah $$y_i=3394948 - 16207250x1_t - 16150720x2_t$$ Berdasarkan ringkasan model dapat diketahui bahwa hasil uji F memiliki *p-value* \< $\alpha$ (5%). Artinya, minimal terdapat satu variabel yang berpengaruh nyata terhadap model. Hasil uji-t parsial kedua parameter regresi, yaitu intersep dan koefisien regresi juga menunjukkan hal yang sama, yaitu memiliki *p-value* \< $\alpha$ (5%) sehingga nyata dalam taraf 5%. Selanjutnya dapat dilihat juga nilai $R^2=0.1019$. Artinya, sebesar 10% keragaman nilai IPM dapat dijelaskan oleh peubah tahun. Hasil ini menunjukkan hasil yang bagus, seolah mendapatkan hasil terbaik. Namun, kita perlu melakukan uji terhadap sisaannya seperti berikut ini.
+
+
+### Uji terhadap sisaan
+```{r}
+#sisaan dan fitted value
+sisaan<- residuals(reg)
+fitValue<- predict(reg)
+
+#Diagnostik dengan eksploratif
+par(mfrow = c(2,2))
+qqnorm(sisaan)
+qqline(sisaan, col = "pink", lwd = 2)
+plot(fitValue, sisaan, col = "pink", pch = 20, xlab = "Sisaan", ylab = "Fitted Values", main = "Sisaan vs Fitted Values")
+abline(a = 0, b = 0, lwd = 2)
+hist(sisaan, col = "pink")
+plot(seq(1,144,1), sisaan, col = "pink", pch = 20, xlab = "Sisaan", ylab = "Order", main = "Sisaan vs Order")
+lines(seq(1,144,1), sisaan, col = "green")
+abline(a = 0, b = 0, lwd = 2)
+```
+
+### Uji formal normalitas
+```{r}
+#H0: sisaan mengikuti sebaran normal
+#H1: sisaan tidak mengikuti sebaran normal
+ks.test(sisaan, "pnorm", mean=mean(sisaan), sd=sd(sisaan))
+```
+Berdasarkan uji formal Saphiro-Wilk, diperoleh kesimpulan bahwa belum cukup bukti untuk menyatakan sisaan berdistribusi noromal. Oleh karena itu, kita harus mentransformasi data hingga mendapat cukup bukti untuk menyatakan sisaan berdistribusi normal.
+
+
+### Transformasi menggunakan ln
+```{r}
+tinggi2 <- ln(tinggi)
+rendah2 <- ln(rendah)
+total2 <- ln(total)
+model2 <- lm(total2 ~ tinggi2 + rendah2)
+summary(model2)
+```
+
+### Uji kembali terhadap sisaan
+```{r}
+#sisaan dan fitted value
+sisaan2<- residuals(model2)
+fitValue2<- predict(model2)
+
+#Diagnostik dengan eksploratif
+par(mfrow = c(2,2))
+qqnorm(sisaan2)
+qqline(sisaan2, col = "pink", lwd = 2)
+plot(fitValue2, sisaan2, col = "pink", pch = 20, xlab = "Sisaan", ylab = "Fitted Values", main = "Sisaan vs Fitted Values")
+abline(a = 0, b = 0, lwd = 2)
+hist(sisaan2, col = "pink")
+plot(seq(1,144,1), sisaan2, col = "pink", pch = 20, xlab = "Sisaan", ylab = "Order", main = "Sisaan vs Order")
+lines(seq(1,144,1), sisaan2, col = "green")
+abline(a = 0, b = 0, lwd = 2)
+```
+
+### Cek kembali uji formal normalitas
+```{r}
+#H0: sisaan mengikuti sebaran normal
+#H1: sisaan tidak mengikuti sebaran normal
+ks.test(sisaan2, "pnorm", mean=mean(sisaan2), sd=sd(sisaan2))
+```
+Setelah ditransformasi, penggunaan uji formal Saphiro-Wilk  menghasilkan nilai *p-value* \> $\alpha$ (5%). Artinya, cukup bukti untuk menyatakan sisaan berdistribusi normal.
+
+
+### Uji untuk identifikasi autokorelasi
+```{r}
+par(mfrow = c(1,2))
+acf(sisaan2)
+pacf(sisaan2)
+```
+Berdasarkan plot ACF dan PACF, terlihat terdapat data yang berada diluar rentang batas sehingga ada yang signifikan. Namun, untuk lebih memastikan akan dilakukan uji formal dengan uji Durbin Watson.
+
+
+### Uji Durbin Watson
+```{r}
+dwtest(model2)
+```
+Berdasarkan hasil DW Test, didapatkan nilai $DW = 1.5138$ dan *p-value* = $0.0011511$. Berdasarkan tabel Durbin-Watson diperoleh nilai $DL = 0.9771$ dan $DU = 1.331$. Dengan nilai *p-value* \< 0.05 dapat disimpulkan bahwa tolak H0, cukup bukti mengatakan adanya autokorelasi. Oleh karena itu, diperlukan penangan autokorelasi.
+
+
+### Penanganan Autokorelasi
+## Metode Cochrane-Orcutt
+```{r}
+#Penanganan Autokorelasi Cochrane-Orcutt
+Co<-cochrane.orcutt(model2)
+Co
+Co$coefficients
+```
+
+Hasil keluaran model setelah dilakukan penanganan adalah sebagai berikut. $$y_i= 14.49216 + 20.56318x1_t + -20.20619x2_t$$ Hasil juga menunjukkan bahwa nilai DW dan p-value meningkat menjadi $2.05847$ dan $0.6067$. dengan nilai *p-value* \> 0.05, artinya belum cukup bukti menyatakan bahwa sisaan terdapat autokorelasi pada taraf nyata 5%. Untuk nilai $ρ ̂$ optimum yang digunakan adalah $0.2425254$. Nilai tersebut dapat diketahui dengan *syntax* berikut.
+
+
+## Rho optimum
+```{r}
+rho <- Co$rho
+rho
+```
+
+## Transformasi manual
+```{r}
+#Pendefinisian peubah
+totalman<- total2[-1]-total2[-144]*rho
+highman<- tinggi2[-1]-tinggi2[-144]*rho
+lowman<- rendah2[-1]-rendah2[-144]*rho
+Coman<- lm(totalman~highman+lowman)
+summary(Coman)
+
+#Mencari Penduga Koefisien Regresi setelah Transformasi ke Persamaan Awal
+b0.1 <- Coman$coefficients[1]
+b0baru<- b0.1/(1-rho)
+b1baru <- Coman$coefficients[2]
+b2baru <- Coman$coefficients[3]
+b0baru
+b1baru
+b2baru
+```
+Hasil perhitungan koefisien regresi tersebut akan menghasilkan hasil yang sama dengan model yang dihasilkan menggunakan *packages*.
+
+
+
+## Metode Hildreth-Lu
+```{r}
+hildreth.lu.func<- function(r, reg){
+  x1 <- model.matrix(reg)[,c(-1,-3)]
+  x2 <- model.matrix(reg)[,c(-1,-2)]
+  y <- model.response(model.frame(reg))
+  n <- length(y)
+  t <- 2:n
+  y <- y[t]-r*y[t-1]
+  x1 <- x1[t]-r*x1[t-1]
+  x2 <- x2[t]-r*x2[t-1]
+  
+  return(lm(y~x1+x2))
+}
+
+#Pencarian rho yang meminimumkan SSE
+ro.1 <- c(seq(0.1,0.9, by= 0.1))
+tab1 <- data.frame("rho" = ro.1, "SSE" = sapply(ro.1, function(i){deviance(hildreth.lu.func(i, model2))}))
+tab1
+```
+Pada hasil di atas terlihat $ρ$ minimum ketika 0.2. Namun, hasil tersebut masih kurang teliti sehingga akan dicari kembali $ρ$ yang lebih optimum dengan ketelitian yang lebih. Jika sebelumnya jarak antar $ρ$ yang dicari adalah 0.1, kali ini jarak antar $ρ$ adalah 0.001 dan dilakukan pada selang 0.1 sampai dengan 0.4.
+
+```{r}
+#Rho optimal sekitar 0.2
+ro.2<- seq(0.1,0.3, by= 0.001)
+tab.1 <- data.frame("rho" = ro.2, "SSE" = sapply(ro.2, function(i){deviance(hildreth.lu.func(i, model2))}))
+head(tab.1[order(tab.1$SSE),])
+
+#Grafik SSE optimum
+par(mfrow = c(1,1))
+plot(tab1$SSE ~ tab1$rho , type = "l", xlab = "Rho", ylab = "SSE")
+abline(v = tab.1[tab.1$SSE==min(tab.1$SSE),"rho"], lty = 2, col="red",lwd=2)
+text(x=0.32, y=28, labels = "rho=0.269", cex = 0.8)
+```
+Perhitungan yang dilakukan aplikasi `R` menunjukkan bahwa nilai $ρ$ optimum, yaitu saat SSE terkecil terdapat pada nilai $ρ=28.55850$.
+
+
+```{r}
+#Model terbaik
+modelHL2 <- hildreth.lu.func(0.269, model2)
+summary(modelHL2)
+
+#Transformasi Balik
+cat("y = ", coef(modelHL2)[1]/(1-0.269), "+", coef(modelHL2)[2],"x1","+", coef(modelHL2)[3],"x2", sep = "")
+```
+Setelah dilakukan tranformasi balik, didapatkan model dengan metode Hildreth-Lu sebagai berikut. $$y_i= 14.52557 + 20.37092x1_t - 20.02538x2_t $$
+
+## Deteksi autokorelasi
+```{r}
+dwtest(modelHL2)
+```
+Hasil uji Durbin-Watson juga menunjukkan bawah nilai DW sebesar $2.1193$ berada pada selang daerah tidak ada autokorelasi, yaitu pada rentang DU \< DW \< 4-DU atau $1.331 < DW < 2.669$. Hal tersebut juga didukung oleh *p-value* sebesar $0.7389$, di mana *p-value* \> $\alpha$=5%. Artinya tak tolak $H_0$ atau belum cukup bukti menyatakan bahwa ada autokorelasi dalam data dengan metode Hildreth-Lu pada taraf nyata 5%.
+
+
+# Perbandingan keakuratan
+```{r}
+sseModelawal1 <- anova(model2)$`Sum Sq`[c(-1,-2)]
+sseModelCO1 <- anova(Coman)$`Sum Sq`[c(-1,-2)]
+sseModelHL1 <- anova(modelHL2)$`Sum Sq`[c(-1,-2)]
+mseModelawal1 <- sseModelawal1/length(total2)
+mseModelCO1 <- sseModelCO1/length(total2)
+mseModelHL1 <- sseModelHL1/length(total2)
+akurasi1 <- matrix(c(sseModelawal1,sseModelCO1,sseModelHL1,
+                    mseModelawal1,mseModelCO1,mseModelHL1),nrow=2,ncol=3,byrow = T)
+colnames(akurasi1) <- c("Model Awal", "Model Cochrane-Orcutt", "Model Hildreth-Lu")
+row.names(akurasi1) <- c("SSE","MSE")
+akurasi1
+```
+
+# Simpulan
+
+Autokorelasi yang terdapat pada data Volume terjadi akibat adanya korelasi di antara unsur penyusunnya. Adanya autokorelasi menyebabkan model regresi kurang baik karena akan meningkatkan galatnya. Autokorelasi dapat dideteksi secara eksploratif melalui plot sisaan, ACF, dan PACF, serta dengan uji formal Durbin-Watson. Namun, autokorelasi tersebut dapat ditangani dengan metode Cochrane-Orcutt. Metode tersebut menghasilkan nilai SSE yang lebih kecil dibandingkan model awal dan penanganan menggunakan Hildreth-Lu. Artinya model Cochrane-Orcutt baik untuk digunakan dalam penanganan data diatas.
+
+
+
