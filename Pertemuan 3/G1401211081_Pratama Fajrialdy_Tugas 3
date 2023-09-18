@@ -24,7 +24,7 @@ library(readxl)
 ## Impor Data
 ```{r}
 library(rio)
-data1 <- import("https://raw.githubusercontent.com/Prratama/MPDW/main/Data/mpdw2.csv")
+dt <- import("https://raw.githubusercontent.com/Prratama/MPDW/main/Data/mpdw2.csv")
 Yt <- c(dt$Yt)
 Xt <- c(dt$Xt)
 Yt2 <- c(dt$`Y(t-1)`)
