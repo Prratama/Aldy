@@ -23,9 +23,8 @@ library(readxl)
 
 ## Impor Data
 ```{r}
-dt <- read_excel("C:/Users/ASUS/OneDrive/Documents/mpdw2.xlsx", sheet=5)
-str(dt)
-dt
+library(rio)
+data1 <- import("https://raw.githubusercontent.com/Prratama/MPDW/main/Data/mpdw2.csv")
 Yt <- c(dt$Yt)
 Xt <- c(dt$Xt)
 Yt2 <- c(dt$`Y(t-1)`)
