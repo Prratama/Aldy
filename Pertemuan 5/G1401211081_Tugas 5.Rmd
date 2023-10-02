@@ -7,8 +7,8 @@ date: "2023-10-02"
 ---
 
 ```{r}
-library(readxl)
-dt5 <- read_excel("C:/Users/ASUS/OneDrive/Documents/mpdw1.xlsx", sheet=2)
+library(rio)
+dt5 <- import("https://raw.githubusercontent.com/Prratama/MPDW/main/Pertemuan 5/mpdw1.csv", sheet=2)
 View(dt5)
 str(dt5)
 dim(dt5)
