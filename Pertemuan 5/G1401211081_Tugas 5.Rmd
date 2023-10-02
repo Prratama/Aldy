@@ -1,0 +1,159 @@
+---
+title: "Tugas Pertemuan 5"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-10-02"
+---
+
+```{r}
+library(readxl)
+dt5 <- read_excel("C:/Users/ASUS/OneDrive/Documents/mpdw1.xlsx", sheet=2)
+View(dt5)
+str(dt5)
+dim(dt5)
+```
+
+```{r}
+ts5 <- ts(dt5$Harga)
+ts5
+summary(ts5)
+```
+
+
+```{r}
+library(ggplot2)
+library(tsibble)
+plot_stas <- ts5 |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) + geom_line() + theme_bw() +
+  xlab("Obs") + ylab("Nilai")
+plot_stas
+mean(ts5)
+```
+Plot deret waktu di atas menunjukkan bahwa data stasioner dalam rataan, ditandai dengan data yang menyebar di sekitar nilai tengahnya (36,8) dan stasioner dalam ragam, ditandai dengan lebar pita yang cenderung sama.
+
+
+
+```{r}
+### Uji ACF
+acf(ts5)
+### Uji ADF
+tseries::adf.test(ts5)
+```
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cenderung *tails off* dan membentuk gelombang sinus.
+
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.097 yang lebih kecil dari taraf nyata 5% sehingga tolak $H_0$ dan menandakan bahwa data stasioner dalam rataan.
+
+
+```{r}
+library(MASS)
+index <- seq(1:122)
+bc = boxcox(ts5~index, lambda = seq(-2,12,by=0.01))
+#Nilai Rounded Lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+#SK
+bc$x[bc$y > max(bc$y) - 1/2 * qchisq(.95,1)]
+```
+Gambar di atas menunjukkan nilai *rounded value* ($\lambda$) optimum sebesar **4,59** dan pada selang kepercayaan 95% nilai memiliki batas bawah **-1,29** dan batas atas **10,61**. Selang tersebut memuat nilai satu sehingga dapat dikatakan bahwa data bangkitan stasioner dalam ragam.
+
+
+### Partisi Data
+
+#### Bagian 1
+
+```{r}
+dtstas1 <- ts5[1:41] |> ts()
+mean(dtstas1)
+var(dtstas1)
+```
+
+#### Plot Time Series
+
+```{r}
+dtstas1 |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) +
+  geom_line() + theme_bw() +
+  xlab("Obs") + ylab("Nilai")
+```
+
+
+#### Plot ACF
+
+```{r}
+acf(dtstas1)
+```
+
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cenderung *tails off* dan membentuk gelombang sinus.
+
+#### Uji ADF
+
+```{r}
+tseries::adf.test(dtstas1)
+```
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.01 yang lebih kecil dari taraf nyata 5% sehingga tolak $H_0$ dan menandakan bahwa data stasioner dalam rataan.
+
+
+#### Plot Boxcox
+
+```{r}
+index <- seq(1:41)
+bc = boxcox(dtstas1~index, lambda = seq(-35,6,by=1))
+#Nilai Rounded Lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+#SK
+bc$x[bc$y > max(bc$y) - 1/2 * qchisq(.95,1)]
+```
+
+Gambar di atas menunjukkan nilai *rounded value* ($\lambda$) optimum sebesar **-14,7** dan pada selang kepercayaan 95% nilai memiliki batas bawah **-31,27** dan batas atas **1,03**. Selang tersebut memuat nilai satu sehingga dapat dikatakan bahwa data bangkitan stasioner dalam ragam.
+
+
+#### Bagian 2
+
+```{r}
+dtstas2 <- ts5[1:82] |> ts()
+mean(dtstas2)
+var(dtstas2)
+```
+
+#### Plot Time Series
+
+```{r}
+dtstas2 |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) +
+  geom_line() + theme_bw() +
+  xlab("Obs") + ylab("Nilai")
+```
+
+Plot deret waktu di atas menunjukkan bahwa data stasioner dalam rataan, ditandai dengan data yang menyebar di sekitar nilai tengahnya (36.92) dan stasioner dalam ragam, ditandai dengan lebar pita yang cenderung sama.
+
+#### Plot ACF
+
+```{r}
+acf(dtstas2)
+```
+
+Berdasarkan plot ACF, terlihat bahwa plot ACF pada data tersebut cenderung *tails off* dan membentuk gelombang sinus.
+
+#### Uji ADF
+
+```{r}
+tseries::adf.test(dtstas2)
+```
+Berdasarkan uji ADF tersebut, didapat *p-value* sebesar 0.1 yang lebih kecil dari taraf nyata 5% sehingga tak tolak $H_0$ dan menandakan bahwa data tidak stasioner dalam rataan.
+
+
+#### Plot Boxcox
+
+```{r}
+index <- seq(1:82)
+bc = boxcox(dtstas2~index, lambda = seq(-15,4,by=1))
+#Nilai Rounded Lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+#SK
+bc$x[bc$y > max(bc$y) - 1/2 * qchisq(.95,1)]
+```
+
+Gambar di atas menunjukkan nilai *rounded value* ($\lambda$) optimum sebesar **-5,6** dan pada selang kepercayaan 95% nilai memiliki batas bawah **-13,27** dan batas atas **2,46**. Selang tersebut memuat nilai satu sehingga dapat dikatakan bahwa data bangkitan stasioner dalam ragam.
