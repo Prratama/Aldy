@@ -28,7 +28,7 @@ library(aTSA)
 # Import Data
 ```{r}
 library(rio)
-data <- import("https://raw.githubusercontent.com/Adevaaaa/MPDW/main/Data_Tugas/Data%20Tugas%20MPDW%201.csv")
+data <- import("https://raw.githubusercontent.com/Prratama/MPDW/main/Data/mpdw1.csv")
 ```
 
 # Data Time Series
